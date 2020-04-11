@@ -1,13 +1,14 @@
 /* p5.js import not present because I am using the online environment for p5 at the moment. */
 
-const width = 700;
+const width = 600;
 const height = 500;
 const minSpeed = 2;
-const maxSpeed = 4;
-const entities = 8;
+const maxSpeed = 3;
+const entities = 6;
 const maxSize = 80;
 const minSize = 15;
 let blobs = [];
+const res = 5;
 
 // vector definition
 const RandSpeedVec = function(r) {
@@ -45,37 +46,20 @@ const Blob = function(x, y, r) {
   };
 }
 
-// grid helper 
-function getNode(grid, x, y) {
-  if (typeof grid !== undefined && grid !== null) {
-    return grid[x][y];
-  } else {
-    throw new Error('Grid invalid!');
-  }
-}
-
 // grid definition
 const Grid = function() {
   this.cells = [];
   this.nodes = [];
 
-  this.show = () => {
-    /*for (var i = 0; i < this.cells.length; i++) {
-      this.cells[i].forEach(cell => {
-        cell.show();
-      });
-    }*/
-    for (var j = 0; j < this.nodes.length; j++) {
-      this.nodes[j].forEach(node => {
-        node.show();
-      });
-    }
-  }
-
   this.update = () => {
     for (var k = 0; k < this.nodes.length; k++) {
       this.nodes[k].forEach(node => {
         node.update();
+      });
+    }
+    for (var l = 0; l < this.cells.length; l++) {
+      this.cells[l].forEach(cell => {
+        cell.update();
       });
     }
   }
@@ -92,32 +76,36 @@ function getDirection(cornerPos, cellOrigin) {
   return coeff;
 }
 
-// cell definition
-const Cell = function(x, y, res, corners) {
+const Point = function(x, y) {
   this.x = x;
   this.y = y;
-  this.res = res;
+}
+
+// cell definition
+const Cell = function(x, y, corners) {
+  this.x = x;
+  this.y = y;
   this.corners = corners;
 
   this.show = () => {
     noFill();
     stroke('blue');
     strokeWeight(0.5);
-    square(this.x, this.y, this.res);
+    square(this.x, this.y, res);
   }
 
   this.getArcTask = () => {
     // arcToDo = [[[first link],[second link]]]
-    let arcToDo = [[]];
+    let arcToDo = [
+      []
+    ];
     let tasks = 0;
     this.corners.forEach(corner => {
       if (corner.active == false) {
-        let xCoeff = getDirection(corner.x, this.x);
-        let yCoeff = getDirection(corner.y, this.y);
-        let horizNeighbourX = corner.x + (xCoeff * this.x);
-        let horizNeighbour = getNode(grid, horizNeighbourX, corner.y);
-        let vertNeighbourY = corner.y + (yCoeff * this.y);
-        let vertNeighbour = getNode(grid, corner.x, vertNeighbourY);
+        let horizNeighbourX = corner.x + (getDirection(corner.x, this.x) * res);
+        let horizNeighbour = getNode(horizNeighbourX / res, corner.y / res);
+        let vertNeighbourY = corner.y + (getDirection(corner.y, this.y) * res);
+        let vertNeighbour = getNode(corner.x / res, vertNeighbourY / res);
         if (arcToDo.length != tasks + 1) {
           arcToDo.push([]);
         }
@@ -137,13 +125,43 @@ const Cell = function(x, y, res, corners) {
     });
     return arcToDo;
   }
-  
-  // drawing the cell's arcs
+
+  // returns a Point object 
+  // link = [unactive cell, active cell]
+  this.createPointFromLink = link => {
+    let unactive = link[0];
+    let active = link[1];
+    let tempX = null;
+    let tempY = null;
+
+    if (link[0].x == link[1].x) {
+      tempX = link[0].x;
+    } else if (link[0].y == link[1].y) {
+      tempY = link[0].y;
+    }
+
+    if (tempY == null) {
+      tempY = unactive.y + ((active.y - unactive.y) * ((1 - unactive.sum) / (active.sum - unactive.sum)));
+    } else if (tempX == null) {
+      tempX = unactive.x + ((active.x - unactive.x) * ((1 - unactive.sum) / (active.sum - unactive.sum)));
+    }
+
+    return new Point(tempX, tempY);
+  }
+
   // arcToDo = [[[first link],[second link]]]
-  this.createArc = arcToDo => {
-    for (let task = 0; task<arcToDo.length; task++) {
-      for (let link = 0; link<arcToDo[task].length; link++) {
-        
+  this.update = () => {
+    let arcToDo = this.getArcTask();
+    if (arcToDo[0].length != 0) {
+      for (let task = 0; task < arcToDo.length; task++) {
+        let points = [];
+        for (let link = 0; link < 2; link++) {
+          let point = this.createPointFromLink(arcToDo[task][link]);
+          points.push(point);
+        }
+        stroke('red');
+        strokeWeight(1);
+        line(points[0].x, points[0].y, points[1].x, points[1].y)
       }
     }
   }
@@ -202,7 +220,7 @@ function createGrid(res) {
       // get corners [topLeft, topRight, bottomLeft, bottomRight]
       let corners = [newGrid.nodes[cellX][cellY], newGrid.nodes[cellX + 1][cellY], newGrid.nodes[cellX][cellY + 1], newGrid.nodes[cellX + 1][cellY + 1]];
       // create cell
-      newGrid.cells[cellX].push(new Cell((cellX * res), (cellY * res), res, corners));
+      newGrid.cells[cellX].push(new Cell((cellX * res), (cellY * res), corners));
     }
   }
 
@@ -220,24 +238,27 @@ function createBlobs() {
 }
 
 // global grid
-let grid = createGrid(50);
+let grid;
+
+// grid helper 
+function getNode(x, y) {
+  return grid.nodes[x][y];
+}
+
 
 function setup() {
   createCanvas(width, height);
   createBlobs();
+  grid = createGrid(res);
 }
 
 function draw() {
   clear();
   background(51);
 
-  // debuging grid showing only
-  grid.show();
-  grid.update();
-
   blobs.map(blob => {
-    blob.show();
     blob.update();
   });
-
+  
+  grid.update();
 }
