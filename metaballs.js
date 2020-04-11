@@ -1,12 +1,10 @@
-/* p5.js import not present because I am using the online environment for p5 at the moment. */
-
-const width = 600;
+const width = 700;
 const height = 500;
-const minSpeed = 2;
-const maxSpeed = 3;
-const entities = 6;
-const maxSize = 80;
-const minSize = 15;
+const minSpeed = 0.5;
+const maxSpeed = 1.5;
+const entities = 7;
+const maxSize = 70;
+const minSize = 10;
 let blobs = [];
 const res = 5;
 
@@ -30,7 +28,7 @@ const Blob = function(x, y, r) {
     noFill();
     stroke('red');
     strokeWeight(2);
-    ellipse(this.x, this.y, this.r * 2, this.r * 2);
+    ellipse(this.x, this.y, this.r * 2, this.r * 3);
   }
 
   this.update = () => {
@@ -55,11 +53,13 @@ const Grid = function() {
     for (var k = 0; k < this.nodes.length; k++) {
       this.nodes[k].forEach(node => {
         node.update();
+        //node.show();
       });
     }
     for (var l = 0; l < this.cells.length; l++) {
       this.cells[l].forEach(cell => {
         cell.update();
+        //cell.show();
       });
     }
   }
@@ -81,6 +81,15 @@ const Point = function(x, y) {
   this.y = y;
 }
 
+// helper 
+function findClosestPointFromMe(me, pointArray) {
+  let dists = [];
+  pointArray.forEach(point => {
+    dists.push(dist(me.x, me.y, point.x, point.y));
+  });
+  return pointArray[dists.indexOf(Math.min(...dists))];
+}
+
 // cell definition
 const Cell = function(x, y, corners) {
   this.x = x;
@@ -100,6 +109,7 @@ const Cell = function(x, y, corners) {
       []
     ];
     let tasks = 0;
+    let activeCount = 0;
     this.corners.forEach(corner => {
       if (corner.active == false) {
         let horizNeighbourX = corner.x + (getDirection(corner.x, this.x) * res);
@@ -121,6 +131,8 @@ const Cell = function(x, y, corners) {
             arcToDo[tasks].push([corner, vertNeighbour]);
           }
         }
+      } else {
+        activeCount += 1;
       }
     });
     return arcToDo;
@@ -152,6 +164,12 @@ const Cell = function(x, y, corners) {
   // arcToDo = [[[first link],[second link]]]
   this.update = () => {
     let arcToDo = this.getArcTask();
+    let activeCorners = [];
+    this.corners.forEach(corner => {
+      if (corner.active == true) {
+        activeCorners.push(corner);
+      }
+    });
     if (arcToDo[0].length != 0) {
       for (let task = 0; task < arcToDo.length; task++) {
         let points = [];
@@ -161,7 +179,7 @@ const Cell = function(x, y, corners) {
         }
         stroke('red');
         strokeWeight(1);
-        line(points[0].x, points[0].y, points[1].x, points[1].y)
+        line(points[0].x, points[0].y, points[1].x, points[1].y);
       }
     }
   }
@@ -259,6 +277,6 @@ function draw() {
   blobs.map(blob => {
     blob.update();
   });
-  
+
   grid.update();
 }
