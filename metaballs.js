@@ -1,10 +1,10 @@
-const width = 700;
-const height = 500;
-const minSpeed = 0.5;
-const maxSpeed = 1.5;
-const entities = 7;
-const maxSize = 70;
-const minSize = 10;
+const width = 900;
+const height = 800;
+const minSpeed = 1;
+const maxSpeed = 2;
+const entities = 10;
+const maxSize = 85;
+const minSize = 25;
 let blobs = [];
 const res = 5;
 
@@ -35,10 +35,10 @@ const Blob = function(x, y, r) {
     this.x = this.x + this.vel.x;
     this.y = this.y + this.vel.y;
 
-    if (this.x + this.r > width || this.x - this.r < 0) {
+    if (this.x + this.r + 20 > width || this.x - this.r - 20 < 0) {
       this.vel.x = this.vel.x * (-1);
     }
-    if (this.y + this.r > height || this.y - this.r < 0) {
+    if (this.y + this.r + 20 > height || this.y - this.r - 20 < 0) {
       this.vel.y = this.vel.y * (-1);
     }
   };
